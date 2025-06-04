@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Image to Ghibli</title>
+  <style>
+    body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #fff8e1;
+  padding: 40px;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #aaa;
+}
+    </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Image to Ghibli AI</h1>
+    <input type="file" id="imageInput" />
+    <button id="uploadBtn">Convert</button>
+    <p id="loading" style="display:none;">Mengunggah & memproses...</p>
+    <img id="outputImage" style="display:none;" />
+  </div>
+  <script>
+    document.getElementById("uploadBtn").addEventListener("click", async () => {
+  const input = document.getElementById("imageInput");
+  const file = input.files[0];
+  const loading = document.getElementById("loading");
+  const output = document.getElementById("outputImage");
+
+  if (!file) return alert("Pilih gambar dulu!");
+
+  loading.style.display = "block";
+  output.style.display = "none";
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  try {
+    const upload = await fetch("/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    const { url } = await upload.json();
+
+    const ghibliRes = await fetch(`https://api.nyxs.pw/ai-image/jadighibli?url=${encodeURIComponent(url)}`);
+    const blob = await ghibliRes.blob();
+
+    output.src = URL.createObjectURL(blob);
+    output.style.display = "block";
+  } catch (err) {
+    alert("Terjadi kesalahan.");
+    console.error(err);
+  } finally {
+    loading.style.display = "none";
+  }
+});
+  </script>
+</body>
+</html>
