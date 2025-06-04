@@ -1,111 +1,61 @@
-const express = require("express");
-const multer = require("multer");
-const axios = require("axios");
-const FormData = require("form-data");
-const fs = require("fs");
-const path = require("path");
+const express = require('express');
+const axios = require('axios');
+const multer = require('multer');
+const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
+const port = 3000;
 
-// Pastikan folder uploads ada
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+// Configure multer for file uploads
+const upload = multer({ dest: 'uploads/' });
 
-const upload = multer({ 
-  dest: uploadsDir,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    // Hanya terima file gambar
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Hanya file gambar yang diizinkan'));
-    }
-  }
-});
+// Serve static files
+app.use(express.static('public'));
 
-app.use(express.static("public"));
-
-// Error handler untuk multer
-app.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'File terlalu besar (max 10MB)' });
-    }
-  }
-  next(error);
-});
-
-app.post("/upload", upload.single("image"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "Tidak ada file yang diupload" });
-    }
-
-    const file = fs.createReadStream(req.file.path);
-    const form = new FormData();
-    form.append("file", file, req.file.originalname);
-
-    // Upload ke 0x0.st (gratis, tanpa API key)
-    const response = await axios.post("https://0x0.st", form, {
-      headers: {
-        ...form.getHeaders(),
-        'User-Agent': 'GhibliAI/1.0'
-      },
-      timeout: 30000 // 30 detik timeout
-    });
-
-    // Hapus file lokal setelah upload
+// Convert endpoint
+app.post('/convert', upload.single('image'), async (req, res) => {
     try {
-      fs.unlinkSync(req.file.path);
-    } catch (unlinkError) {
-      console.warn('Gagal menghapus file temporary:', unlinkError.message);
+        if (!req.file) {
+            return res.status(400).send('No image uploaded');
+        }
+
+        // Read the uploaded file
+        const imagePath = req.file.path;
+        const imageStream = fs.createReadStream(imagePath);
+
+        // Create form data to send to Ghibli API
+        const formData = new FormData();
+        formData.append('image', imageStream);
+
+        // Alternative approach using URL (if API accepts direct upload)
+        const ghibliApiUrl = 'https://api.nyxs.pw/ai-image/jadighibli';
+
+        // Option 1: Stream the file directly to the API
+        const response = await axios.post(ghibliApiUrl, formData, {
+            headers: formData.getHeaders(),
+            responseType: 'arraybuffer'
+        });
+
+        // Clean up: delete the uploaded file
+        fs.unlinkSync(imagePath);
+
+        // Send the processed image back to client
+        res.set('Content-Type', response.headers['content-type']);
+        res.send(Buffer.from(response.data, 'binary'));
+    } catch (error) {
+        console.error('Server error:', error);
+        
+        // Clean up uploaded file if it exists
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        
+        res.status(500).send(error.message);
     }
-
-    res.json({ url: response.data.trim() });
-  } catch (error) {
-    console.error('Upload error:', error.message);
-    
-    // Bersihkan file temporary jika ada error
-    if (req.file && req.file.path) {
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (unlinkError) {
-        console.warn('Gagal menghapus file temporary:', unlinkError.message);
-      }
-    }
-
-    if (error.code === 'ECONNABORTED') {
-      res.status(500).json({ error: "Timeout saat upload gambar" });
-    } else if (error.response) {
-      res.status(500).json({ error: "Gagal upload ke server eksternal" });
-    } else {
-      res.status(500).json({ error: "Gagal upload gambar" });
-    }
-  }
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint tidak ditemukan' });
-});
-
-// Global error handler
-app.use((error, req, res, next) => {
-  console.error('Server error:', error);
-  res.status(500).json({ error: 'Terjadi kesalahan server' });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server berjalan di http://localhost:${PORT}`);
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
 });
