@@ -1,22 +1,19 @@
 {
-  "name": "ghibli-ai",
+  "name": "ghibli-converter",
   "version": "1.0.0",
-  "description": "Convert images to Ghibli style using AI",
+  "description": "Image to Ghibli Style Converter",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
-  },
-  "keywords": ["ghibli", "ai", "image", "converter"],
-  "author": "",
-  "license": "MIT",
-  "engines": {
-    "node": ">=14.0.0"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
-    "axios": "^1.6.7",
     "express": "^4.18.2",
-    "form-data": "^4.0.0",
-    "multer": "^1.4.5"
+    "axios": "^1.6.2",
+    "multer": "^1.4.5-lts.1",
+    "form-data": "^4.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }
