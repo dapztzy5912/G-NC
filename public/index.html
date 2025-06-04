@@ -1,155 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Image to Ghibli AI</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #fff8e1;
-      padding: 40px;
-      margin: 0;
-    }
-
-    .container {
-      max-width: 500px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #aaa;
-    }
-
-    h1 {
-      color: #333;
-      margin-bottom: 20px;
-    }
-
-    input[type="file"] {
-      margin: 10px 0;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px;
-    }
-
-    button:hover {
-      background: #0056b3;
-    }
-
-    button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-
-    .loading {
-      color: #007bff;
-      margin: 20px 0;
-    }
-
-    .error {
-      color: #dc3545;
-      background: #f8d7da;
-      border: 1px solid #f5c6cb;
-      padding: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
-    }
-
-    #outputImage {
-      max-width: 100%;
-      height: auto;
-      border-radius: 5px;
-      margin: 20px 0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Ghibli Converter</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .upload-box {
+            border: 2px dashed #3498db;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        #preview, #result {
+            max-width: 100%;
+            display: none;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #error {
+            color: #e74c3c;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Image to Ghibli AI</h1>
-    <p>Convert your images to Studio Ghibli style!</p>
+    <h1>Image to Ghibli Style</h1>
+    <p>Upload an image to convert it to Ghibli style</p>
     
-    <input type="file" id="imageInput" accept="image/*">
-    <br>
-    <button id="uploadBtn">Convert</button>
-    
-    <div id="loading" class="loading" style="display:none;">
-      Uploading & processing...
+    <div class="upload-box" id="uploadBox">
+        <p>Click to upload image</p>
+        <input type="file" id="fileInput" accept="image/*" style="display:none">
     </div>
     
-    <div id="error" class="error" style="display:none;"></div>
+    <img id="preview" alt="Preview">
+    <button id="convertBtn" disabled>Convert to Ghibli</button>
     
-    <img id="outputImage" style="display:none;">
-  </div>
-
-  <script>
-    document.getElementById("uploadBtn").addEventListener("click", async function() {
-      const input = document.getElementById("imageInput");
-      const file = input.files[0];
-      const loading = document.getElementById("loading");
-      const error = document.getElementById("error");
-      const output = document.getElementById("outputImage");
-
-      if (!file) {
-        showError("Please select an image first!");
-        return;
-      }
-
-      // Reset UI
-      loading.style.display = "block";
-      error.style.display = "none";
-      output.style.display = "none";
-
-      const formData = new FormData();
-      formData.append("image", file);
-
-      try {
-        const upload = await fetch("/upload", {
-          method: "POST",
-          body: formData
-        });
-
-        if (!upload.ok) {
-          throw new Error("Upload failed");
-        }
-
-        const result = await upload.json();
-        const ghibliRes = await fetch("https://api.nyxs.pw/ai-image/jadighibli?url=" + encodeURIComponent(result.url));
+    <div class="loader" id="loader"></div>
+    <div id="error"></div>
+    
+    <h2>Result:</h2>
+    <img id="result" alt="Ghibli Style Result">
+    
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadBox = document.getElementById('uploadBox');
+        const preview = document.getElementById('preview');
+        const convertBtn = document.getElementById('convertBtn');
+        const result = document.getElementById('result');
+        const loader = document.getElementById('loader');
+        const errorDiv = document.getElementById('error');
         
-        if (!ghibliRes.ok) {
-          throw new Error("Ghibli conversion failed");
+        // Handle file selection
+        uploadBox.addEventListener('click', () => fileInput.click());
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.style.borderColor = '#2980b9';
+        });
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.style.borderColor = '#3498db';
+        });
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.style.borderColor = '#3498db';
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file && file.type.match('image.*')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    convertBtn.disabled = false;
+                    result.style.display = 'none';
+                    errorDiv.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
         }
-
-        const blob = await ghibliRes.blob();
-        output.src = URL.createObjectURL(blob);
-        output.style.display = "block";
-      } catch (err) {
-        showError("An error occurred: " + err.message);
-      } finally {
-        loading.style.display = "none";
-      }
-    });
-
-    function showError(message) {
-      const error = document.getElementById("error");
-      error.textContent = message;
-      error.style.display = "block";
-      setTimeout(function() {
-        error.style.display = "none";
-      }, 5000);
-    }
-  </script>
+        
+        // Handle conversion
+        convertBtn.addEventListener('click', async function() {
+            if (!fileInput.files[0]) return;
+            
+            loader.style.display = 'block';
+            convertBtn.disabled = true;
+            errorDiv.style.display = 'none';
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', fileInput.files[0]);
+                
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+                
+                const imageBlob = await response.blob();
+                result.src = URL.createObjectURL(imageBlob);
+                result.style.display = 'block';
+            } catch (error) {
+                errorDiv.textContent = 'Error: ' + error.message;
+                errorDiv.style.display = 'block';
+                console.error('Conversion error:', error);
+            } finally {
+                loader.style.display = 'none';
+                convertBtn.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
