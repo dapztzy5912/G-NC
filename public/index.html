@@ -1,295 +1,154 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Image to Ghibli AI</title>
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: Arial, sans-serif;
       text-align: center;
-      background: linear-gradient(135deg, #fff8e1 0%, #f3e5ab 100%);
-      padding: 40px 20px;
-      min-height: 100vh;
+      background: #fff8e1;
+      padding: 40px;
       margin: 0;
     }
 
     .container {
-      max-width: 600px;
+      max-width: 500px;
       margin: auto;
       background: white;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #aaa;
     }
 
     h1 {
-      color: #2c3e50;
-      margin-bottom: 30px;
-      font-size: 2.5em;
-    }
-
-    .upload-section {
-      margin: 30px 0;
+      color: #333;
+      margin-bottom: 20px;
     }
 
     input[type="file"] {
-      margin: 15px 0;
-      padding: 10px;
-      border: 2px dashed #3498db;
-      border-radius: 8px;
-      background: #f8f9fa;
-      width: 100%;
-      max-width: 400px;
+      margin: 10px 0;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
     }
 
     button {
-      background: linear-gradient(45deg, #3498db, #2980b9);
+      background: #007bff;
       color: white;
       border: none;
-      padding: 15px 30px;
+      padding: 10px 20px;
       font-size: 16px;
-      border-radius: 8px;
+      border-radius: 5px;
       cursor: pointer;
-      transition: all 0.3s ease;
-      margin: 15px 0;
+      margin: 10px;
     }
 
     button:hover {
-      background: linear-gradient(45deg, #2980b9, #1f618d);
-      transform: translateY(-2px);
+      background: #0056b3;
     }
 
     button:disabled {
-      background: #bdc3c7;
+      background: #ccc;
       cursor: not-allowed;
-      transform: none;
     }
 
     .loading {
-      color: #3498db;
-      font-size: 18px;
+      color: #007bff;
       margin: 20px 0;
     }
 
     .error {
-      color: #e74c3c;
-      font-size: 16px;
-      margin: 15px 0;
+      color: #dc3545;
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
       padding: 10px;
-      background: #fadbd8;
       border-radius: 5px;
-      border-left: 4px solid #e74c3c;
-    }
-
-    .result-section {
-      margin-top: 30px;
+      margin: 10px 0;
     }
 
     #outputImage {
       max-width: 100%;
       height: auto;
-      border-radius: 10px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      margin: 20px 0;
-    }
-
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #3498db;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .info {
-      background: #d5e8f4;
-      border: 1px solid #3498db;
       border-radius: 5px;
-      padding: 15px;
       margin: 20px 0;
-      color: #2c3e50;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🎨 Image to Ghibli AI</h1>
+    <h1>Image to Ghibli AI</h1>
+    <p>Convert your images to Studio Ghibli style!</p>
     
-    <div class="info">
-      <p><strong>Cara menggunakan:</strong></p>
-      <p>1. Pilih gambar dari perangkat Anda (max 10MB)</p>
-      <p>2. Klik tombol "Convert to Ghibli Style"</p>
-      <p>3. Tunggu beberapa saat untuk proses konversi</p>
-    </div>
-
-    <div class="upload-section">
-      <input type="file" id="imageInput" accept="image/*" />
-      <br>
-      <button id="uploadBtn">🎭 Convert to Ghibli Style</button>
-    </div>
+    <input type="file" id="imageInput" accept="image/*">
+    <br>
+    <button id="uploadBtn">Convert</button>
     
-    <div id="loading" style="display:none;">
-      <div class="spinner"></div>
-      <p class="loading">Mengunggah & memproses gambar...</p>
+    <div id="loading" class="loading" style="display:none;">
+      Uploading & processing...
     </div>
     
     <div id="error" class="error" style="display:none;"></div>
     
-    <div class="result-section">
-      <img id="outputImage" style="display:none;" alt="Hasil konversi Ghibli" />
-    </div>
+    <img id="outputImage" style="display:none;">
   </div>
 
   <script>
-    const imageInput = document.getElementById("imageInput");
-    const uploadBtn = document.getElementById("uploadBtn");
-    const loading = document.getElementById("loading");
-    const error = document.getElementById("error");
-    const output = document.getElementById("outputImage");
+    document.getElementById("uploadBtn").addEventListener("click", async function() {
+      const input = document.getElementById("imageInput");
+      const file = input.files[0];
+      const loading = document.getElementById("loading");
+      const error = document.getElementById("error");
+      const output = document.getElementById("outputImage");
 
-    // Fungsi untuk menampilkan error
-    function showError(message) {
-      error.textContent = message;
-      error.style.display = "block";
-      setTimeout(() => {
-        error.style.display = "none";
-      }, 5000);
-    }
-
-    // Fungsi untuk reset UI
-    function resetUI() {
-      loading.style.display = "none";
-      error.style.display = "none";
-      output.style.display = "none";
-      uploadBtn.disabled = false;
-      uploadBtn.textContent = "🎭 Convert to Ghibli Style";
-    }
-
-    // Validasi file
-    imageInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        // Cek ukuran file (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          showError("File terlalu besar! Maksimal 10MB.");
-          imageInput.value = "";
-          return;
-        }
-        
-        // Cek tipe file
-        if (!file.type.startsWith('image/')) {
-          showError("Hanya file gambar yang diizinkan!");
-          imageInput.value = "";
-          return;
-        }
-      }
-    });
-
-    uploadBtn.addEventListener("click", async () => {
-      const file = imageInput.files[0];
-      
       if (!file) {
-        showError("Pilih gambar terlebih dahulu!");
+        showError("Please select an image first!");
         return;
       }
 
-      // Reset UI dan mulai loading
-      resetUI();
+      // Reset UI
       loading.style.display = "block";
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = "⏳ Processing...";
+      error.style.display = "none";
+      output.style.display = "none";
 
       const formData = new FormData();
       formData.append("image", file);
 
       try {
-        // Step 1: Upload gambar
-        const uploadResponse = await fetch("/upload", {
+        const upload = await fetch("/upload", {
           method: "POST",
           body: formData
         });
 
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json();
-          throw new Error(errorData.error || "Gagal upload gambar");
+        if (!upload.ok) {
+          throw new Error("Upload failed");
         }
 
-        const { url } = await uploadResponse.json();
-
-        // Step 2: Konversi ke style Ghibli
-        const ghibliResponse = await fetch(
-          `https://api.nyxs.pw/ai-image/jadighibli?url=${encodeURIComponent(url)}`
-        );
-
-        if (!ghibliResponse.ok) {
-          throw new Error("Gagal mengkonversi gambar ke style Ghibli");
-        }
-
-        const blob = await ghibliResponse.blob();
+        const result = await upload.json();
+        const ghibliRes = await fetch("https://api.nyxs.pw/ai-image/jadighibli?url=" + encodeURIComponent(result.url));
         
-        // Tampilkan hasil
+        if (!ghibliRes.ok) {
+          throw new Error("Ghibli conversion failed");
+        }
+
+        const blob = await ghibliRes.blob();
         output.src = URL.createObjectURL(blob);
         output.style.display = "block";
-        
-        // Scroll ke hasil
-        output.scrollIntoView({ behavior: 'smooth' });
-
       } catch (err) {
-        console.error("Error:", err);
-        showError(err.message || "Terjadi kesalahan saat memproses gambar");
+        showError("An error occurred: " + err.message);
       } finally {
         loading.style.display = "none";
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = "🎭 Convert to Ghibli Style";
       }
     });
 
-    // Drag and drop functionality
-    const container = document.querySelector('.container');
-    
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-      container.addEventListener(eventName, preventDefaults, false);
-    });
-
-    function preventDefaults(e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-      container.addEventListener(eventName, highlight, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      container.addEventListener(eventName, unhighlight, false);
-    });
-
-    function highlight(e) {
-      container.style.background = '#e8f4f8';
-    }
-
-    function unhighlight(e) {
-      container.style.background = 'white';
-    }
-
-    container.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      
-      if (files.length > 0) {
-        imageInput.files = files;
-        imageInput.dispatchEvent(new Event('change'));
-      }
+    function showError(message) {
+      const error = document.getElementById("error");
+      error.textContent = message;
+      error.style.display = "block";
+      setTimeout(function() {
+        error.style.display = "none";
+      }, 5000);
     }
   </script>
 </body>
