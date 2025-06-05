@@ -5,44 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Image to Ghibli</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fdf6e3; }
-    input, button { padding: 10px; margin: 10px; }
-    img { max-width: 90%; margin-top: 20px; border-radius: 8px; }
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+    }
+    img {
+      margin-top: 20px;
+      max-width: 90%;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
   </style>
 </head>
 <body>
-  <h1>Convert Image to Ghibli Style</h1>
-  <form id="convertForm">
-    <input type="url" id="imageUrl" placeholder="Enter Image URL" required />
-    <button type="submit">Convert</button>
-  </form>
+  <h1>Image to Ghibli</h1>
+  <input type="text" id="prompt" placeholder="Enter your prompt (e.g. castle on a hill)" />
+  <button onclick="generateImage()">Generate</button>
   <div id="result">
-    <h2>Output:</h2>
-    <img id="ghibliImage" src="" alt="Ghibli Image" />
+    <img id="ghibliImage" src="" alt="" style="display:none;">
   </div>
 
   <script>
-    const form = document.getElementById('convertForm');
-    const image = document.getElementById('ghibliImage');
+    async function generateImage() {
+      const prompt = document.getElementById('prompt').value;
+      if (!prompt) return alert('Please enter a prompt!');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const url = document.getElementById('imageUrl').value;
+      const img = document.getElementById('ghibliImage');
+      img.style.display = 'none';
+      img.src = '';
 
-      image.src = ''; // Clear previous
-      const res = await fetch('/convert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: url })
-      });
-
-      const data = await res.json();
-      if (data.image) {
-        image.src = data.image;
-      } else {
-        alert('Failed to convert image');
+      try {
+        const response = await fetch(`/api/ghibli?prompt=${encodeURIComponent(prompt)}`);
+        if (!response.ok) {
+          alert('Error generating image.');
+          return;
+        }
+        const blob = await response.blob();
+        img.src = URL.createObjectURL(blob);
+        img.style.display = 'block';
+      } catch (err) {
+        console.error(err);
+        alert('Failed to generate image');
       }
-    });
+    }
   </script>
 </body>
 </html>
